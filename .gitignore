@@ -3,3 +3,4 @@
 __pycache__/
 cet4.json
 en50k.txt
+.env*
