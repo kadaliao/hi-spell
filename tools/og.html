@@ -1,0 +1,48 @@
+<!doctype html>
+<!-- Source for og.png (1200x630). Render: tools/build_og.sh -->
+<html lang="zh-CN"><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Shantell+Sans:wght@700&family=ZCOOL+KuaiLe&display=block">
+<style>
+html,body{margin:0;width:1200px;height:630px;overflow:hidden}
+body{background:#FBFBF8;background-image:repeating-linear-gradient(0deg,transparent 0 41px,#F7DCD8 41px 42px),repeating-linear-gradient(90deg,transparent 0 41px,#F7DCD8 41px 42px);font-family:'ZCOOL KuaiLe',sans-serif;color:#25232C;position:relative}
+.frame{position:absolute;inset:22px;border:5px solid #D6443A}
+.frame::after{content:'';position:absolute;inset:10px;border:2px dashed #F3B9B3}
+.left{position:absolute;left:84px;top:78px;width:620px}
+.eyebrow{font-family:Bungee;font-size:22px;letter-spacing:.08em;color:#D6443A}
+h1{margin:14px 0 0;font-weight:400;font-size:132px;line-height:1}
+.hook{margin:28px 0 0;font-size:46px;line-height:1.3}
+.rules{margin-top:30px;display:flex;gap:12px}
+.rules span{font-size:26px;border:3px solid #25232C;border-radius:12px;padding:6px 14px;background:#fff}
+.rules span b{font-family:Bungee;font-weight:400;color:#D6443A}
+.right{position:absolute;right:84px;top:96px;width:380px}
+.slots{display:flex;gap:8px}
+.slot{width:62px;height:76px;border:3px solid #D6443A;border-radius:4px;background:#fff;display:grid;place-items:center;font-family:'Shantell Sans';font-weight:700;font-size:46px}
+.slot.cur{background:#FFF8E6;border-width:4px;position:relative}
+.slot.cur::after{content:'';position:absolute;left:14px;right:14px;bottom:12px;height:5px;border-radius:3px;background:#25232C}
+.slot.miss{border:4px dashed #7A4CD9;background:#EEE6FC;color:#7A4CD9}
+.grid{margin-top:36px;display:grid;grid-template-columns:repeat(5,62px);gap:10px}
+.grid i{height:62px;border-radius:9px;background:#168C62}
+.grid i.y{background:#F2B229}.grid i.r{background:#D6443A}
+.stamp{position:absolute;right:70px;bottom:62px;width:190px;height:190px;border:8px solid #D6443A;border-radius:50%;transform:rotate(-14deg);display:grid;place-items:center;color:#D6443A;opacity:.9}
+.stamp::before{content:'';position:absolute;inset:9px;border:3px solid #D6443A;border-radius:50%}
+.stamp div{text-align:center;line-height:1}
+.stamp b{display:block;font-weight:400;font-size:64px}
+.stamp small{font-family:Bungee;font-size:20px}
+.url{position:absolute;left:84px;bottom:58px;font-family:Bungee;font-size:28px;color:#D6443A;letter-spacing:.04em}
+.pencil{position:absolute;left:600px;bottom:46px;width:96px;transform:rotate(12deg)}
+</style></head><body>
+<div class="frame"></div>
+<div class="left">
+  <div class="eyebrow">CET-4 SPELLING CHALLENGE</div>
+  <h1>嗨拼四级</h1>
+  <p class="hook">毕业这么多年，<br>你还拼得出四级单词吗？</p>
+  <div class="rules"><span>每天 <b>10</b> 词</span><span>满分 <b>710</b></span><span><b>425</b> 过线</span></div>
+</div>
+<div class="right">
+  <div class="slots"><div class="slot">s</div><div class="slot">p</div><div class="slot miss">a</div><div class="slot cur"></div><div class="slot"></div></div>
+  <div class="grid"><i></i><i></i><i class="y"></i><i></i><i></i><i></i><i class="r"></i><i></i><i></i><i class="y"></i></div>
+</div>
+<div class="stamp"><div><b>过线</b><small>LINE 425</small></div></div>
+<div class="url">HI-SPELL.VERCEL.APP</div>
+<svg class="pencil" viewBox="0 0 80 150"><rect x="22" y="6" width="36" height="22" rx="9" fill="#F28DA6" stroke="#25232C" stroke-width="2.5"/><rect x="20" y="26" width="40" height="15" fill="#CDD0D7" stroke="#25232C" stroke-width="2.5"/><path d="M20 41h40v61l-20 38-20-38z" fill="#E9C89A" stroke="#25232C" stroke-width="2.5" stroke-linejoin="round"/><rect x="20" y="41" width="40" height="61" fill="#F2B229" stroke="#25232C" stroke-width="2.5"/><rect x="33" y="42.5" width="14" height="58" fill="#F8CA57"/><path d="M34 128h12l-6 12z" fill="#25232C"/><ellipse cx="32" cy="63" rx="3.3" ry="4.4" fill="#25232C"/><ellipse cx="48" cy="63" rx="3.3" ry="4.4" fill="#25232C"/><circle cx="27" cy="72" r="3.6" fill="#F28DA6" opacity=".7"/><circle cx="53" cy="72" r="3.6" fill="#F28DA6" opacity=".7"/><path d="M33 70 q7 13 14 0z" fill="#25232C"/></svg>
+</body></html>
