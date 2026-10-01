@@ -1,0 +1,1189 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="CET-4 单词拼写游戏：听发音、看释义，一个字母一个字母地拼，连对越多画面和音乐越热闹。">
+<meta name="theme-color" content="#FBFBF8">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cg transform='rotate(35 32 32)'%3E%3Crect x='24' y='4' width='16' height='10' rx='4' fill='%23F28DA6'/%3E%3Crect x='24' y='14' width='16' height='6' fill='%23CDD0D7'/%3E%3Crect x='24' y='20' width='16' height='26' fill='%23F2B229'/%3E%3Cpath d='M24 46h16l-8 14z' fill='%23E9C89A'/%3E%3Cpath d='M29.5 55h5l-2.5 5z' fill='%2325232C'/%3E%3C/g%3E%3C/svg%3E">
+<title>嗨拼四级</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Shantell+Sans:wght@500;700;800&family=ZCOOL+KuaiLe&display=swap">
+<style>
+/* Layout: one-screen app. A CET answer-sheet card sits on a stage that heats up from exam paper to party; keyboard docked at the bottom.
+   Single deliberate look (answer-sheet white + print red + 2B graphite), so no dark-theme blocks. */
+:root {
+  --paper: #FBFBF8;
+  --ink: #25232C;
+  --ink-soft: #6C6875;
+  --sheet: #D6443A;
+  --sheet-tint: #F7DCD8;
+  --pencil: #F2B229;
+  --miss: #7A4CD9;
+  --miss-tint: #EEE6FC;
+  --ok: #168C62;
+  --line: #E8E3E0;
+  --key: #FFFFFF;
+  --key-edge: #D9D3CF;
+  --stage-bg: var(--paper);
+  --hud-fg: var(--ink);
+  --font-display: 'Bungee', 'Arial Black', system-ui, sans-serif;
+  --font-hand: 'Shantell Sans', 'Chalkboard SE', 'Comic Sans MS', system-ui, sans-serif;
+  --font-cn: 'ZCOOL KuaiLe', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  --font-body: system-ui, -apple-system, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  color-scheme: light;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--font-body); overflow: hidden; -webkit-tap-highlight-color: transparent; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--miss); outline-offset: 2px; }
+#app { height: 100%; position: relative; overflow: hidden; }
+.screen { position: absolute; inset: 0; display: flex; flex-direction: column; }
+.scroll { overflow-y: auto; overscroll-behavior: contain; }
+.wrap { width: 100%; max-width: 480px; margin: 0 auto; padding-inline: 16px; box-sizing: border-box; }
+.grid-paper {
+  background-color: var(--paper);
+  background-image:
+    repeating-linear-gradient(0deg, transparent 0 27px, var(--sheet-tint) 27px 28px),
+    repeating-linear-gradient(90deg, transparent 0 27px, var(--sheet-tint) 27px 28px);
+  background-position: -1px -1px;
+}
+
+/* ---------- buttons ---------- */
+.btn { border: 2px solid var(--ink); background: var(--key); border-radius: 12px; padding: 12px 14px; font-weight: 700; box-shadow: 0 3px 0 var(--ink); transition: transform .08s, box-shadow .08s; touch-action: manipulation; }
+.btn:active { transform: translateY(3px); box-shadow: 0 0 0 var(--ink); }
+.btn.primary { background: var(--sheet); color: #fff; border-color: var(--ink); }
+.btn.ghost { background: transparent; box-shadow: none; border-color: var(--line); }
+.btn[disabled] { opacity: .4; pointer-events: none; }
+.icon-btn { width: 40px; height: 40px; display: grid; place-items: center; border: 0; background: transparent; border-radius: 10px; color: var(--hud-fg); flex: none; }
+.icon-btn svg { width: 22px; height: 22px; }
+
+/* ---------- title ---------- */
+#scr-title .wrap { display: flex; flex-direction: column; gap: 18px; padding-block: 28px 24px; min-height: 100%; box-sizing: border-box; }
+.eyebrow { font-family: var(--font-display); font-size: 12px; letter-spacing: .12em; color: var(--sheet); }
+.hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.hero h1 { margin: 6px 0 0; font-family: var(--font-cn); font-weight: 400; font-size: clamp(46px, 14vw, 64px); line-height: 1; letter-spacing: .02em; }
+.hero h1 small { display: block; font-family: var(--font-display); font-size: 15px; letter-spacing: .3em; color: var(--ink-soft); margin-top: 10px; }
+.hero .mascot-wrap { width: 74px; flex: none; margin-bottom: -6px; }
+.demo-row { display: flex; gap: 6px; }
+.demo-row .slot { width: 40px; height: 48px; font-size: 28px; }
+.start-card { background: var(--paper); border: 2px solid var(--ink); border-radius: 18px; padding: 16px; display: grid; gap: 12px; box-shadow: 0 6px 0 var(--ink); }
+.start-card .plan { font-size: 13px; color: var(--ink-soft); line-height: 1.6; margin: 0; }
+.start-card .plan b { color: var(--ink); }
+#btn-start { font-size: 20px; padding: 16px; font-family: var(--font-cn); font-weight: 400; letter-spacing: .06em; }
+.menu { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.menu .btn { display: grid; gap: 2px; justify-items: center; padding: 10px 6px; font-size: 14px; }
+.menu .btn small { font-weight: 500; color: var(--ink-soft); font-size: 12px; font-variant-numeric: tabular-nums; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border: 1.5px solid var(--sheet); border-radius: 10px; background: var(--paper); overflow: hidden; }
+.stats div { padding: 8px 4px; text-align: center; border-left: 1.5px solid var(--sheet-tint); }
+.stats div:first-child { border-left: 0; }
+.stats b { display: block; font-family: var(--font-display); font-size: 18px; font-weight: 400; font-variant-numeric: tabular-nums; }
+.stats span { font-size: 11px; color: var(--ink-soft); }
+.about { font-size: 12px; color: var(--ink-soft); line-height: 1.7; margin: auto 0 0; background: var(--paper); padding: 8px 0 0; }
+.about a { color: inherit; }
+
+/* ---------- play ---------- */
+#scr-play { background: var(--stage-bg); transition: background-color 1.2s; }
+#fx { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+.hud { width: 100%; max-width: 760px; margin: 0 auto; box-sizing: border-box; position: relative; z-index: 2; display: flex; align-items: center; gap: 8px; padding: 6px 8px; color: var(--hud-fg); transition: color 1s; }
+.prog { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.prog span { font-family: var(--font-display); font-size: 13px; font-variant-numeric: tabular-nums; }
+.bar { height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--hud-fg) 15%, transparent); overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: var(--sheet); border-radius: 3px; transition: width .3s; }
+.dopa { text-align: right; line-height: 1.05; }
+.dopa small { display: block; font-size: 10px; opacity: .7; letter-spacing: .1em; }
+.dopa b { font-family: var(--font-display); font-weight: 400; font-size: 20px; font-variant-numeric: tabular-nums; display: inline-block; }
+.dopa b.bump { animation: bump .25s; }
+.clock { font-family: var(--font-display); font-size: 14px; min-width: 64px; text-align: center; font-variant-numeric: tabular-nums; }
+.clock.warn { color: var(--sheet); }
+.stage { position: relative; z-index: 1; flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; padding: 4px 16px 10px; gap: 10px; }
+.combo { align-self: center; display: flex; align-items: baseline; gap: 6px; color: var(--hud-fg); height: 40px; opacity: 0; transition: opacity .2s; }
+.combo.on { opacity: 1; }
+.combo b { font-family: var(--font-display); font-weight: 400; font-size: 34px; line-height: 1; }
+.combo span { font-family: var(--font-cn); font-size: 16px; }
+.combo .mult { font-family: var(--font-display); font-size: 12px; padding: 2px 6px; border-radius: 6px; background: var(--pencil); color: var(--ink); }
+.cbar { width: 60px; height: 5px; border-radius: 3px; background: color-mix(in srgb, var(--hud-fg) 18%, transparent); overflow: hidden; align-self: center; }
+.cbar i { display: block; height: 100%; width: 100%; background: var(--pencil); }
+.cbar.low i { background: var(--sheet); }
+.sheet { position: relative; width: 100%; max-width: 560px; margin: 0 auto; box-sizing: border-box; background: var(--paper); border: 2px solid var(--sheet); border-radius: 6px; padding: 12px 14px 14px; box-shadow: 0 10px 30px rgba(37, 35, 44, .12); display: grid; gap: 10px; transform: scale(var(--beat, 1)); transition: transform .12s ease-out; }
+.sheet::before { content: ''; position: absolute; inset: 4px; border: 1px dashed var(--sheet-tint); border-radius: 3px; pointer-events: none; }
+.sheet.shake { animation: shake .35s; }
+.sheet-head { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--sheet); letter-spacing: .08em; font-weight: 700; padding-right: 46px; }
+.sheet-head .qnode { color: var(--ink-soft); font-weight: 500; letter-spacing: 0; }
+.prompt { display: flex; align-items: flex-start; gap: 10px; }
+.speak { flex: none; width: 46px; height: 46px; border-radius: 50%; border: 2px solid var(--ink); background: var(--pencil); display: grid; place-items: center; box-shadow: 0 3px 0 var(--ink); touch-action: manipulation; }
+.speak:active { transform: translateY(3px); box-shadow: none; }
+.speak svg { width: 22px; height: 22px; }
+.speak.talking { animation: pulse .6s infinite alternate; }
+.meaning { margin: 0; font-size: 19px; line-height: 1.45; min-width: 0; font-weight: 600; }
+.meaning .pos { display: inline-block; font-family: var(--font-hand); font-size: 13px; font-weight: 700; color: var(--sheet); border: 1.5px solid var(--sheet); border-radius: 5px; padding: 0 5px; margin-right: 5px; line-height: 1.4; vertical-align: 2px; }
+.meaning .sense { margin-right: 10px; }
+.slots { display: flex; justify-content: center; flex-wrap: nowrap; gap: var(--gap, 5px); padding-block: 6px 2px; }
+.slot { --s: 44px; width: var(--s); height: calc(var(--s) * 1.2); box-sizing: border-box; border: 1.5px solid var(--sheet); border-radius: 3px; display: grid; place-items: center; font-family: var(--font-hand); font-weight: 700; font-size: calc(var(--s) * .66); line-height: 1; color: var(--ink); background: var(--paper); position: relative; flex: none; }
+.slot.fixed { border-color: transparent; color: var(--ink-soft); }
+.slot.cur { border-width: 2.5px; background: #FFF8E6; }
+.slot.cur::after { content: ''; position: absolute; left: 18%; right: 18%; bottom: 12%; height: 3px; border-radius: 2px; background: var(--ink); animation: caret 1s steps(2) infinite; }
+.slot.ok { animation: pop .22s ease-out; }
+.slot.miss { border: 2px dashed var(--miss); color: var(--miss); background: var(--miss-tint); }
+.slot.miss::after { display: none; }
+.slot.ghost .g { color: color-mix(in srgb, var(--ink) 28%, transparent); }
+.slot.was-miss { background: var(--miss-tint); }
+.slot.hl { box-shadow: 0 0 0 4px color-mix(in srgb, var(--miss) 35%, transparent); }
+.sheet.done .slot:not(.fixed) { border-color: var(--ok); color: var(--ok); }
+.hint { margin: 0; min-height: 20px; font-size: 14px; color: var(--ink-soft); text-align: center; }
+.hint .ph { font-family: var(--font-hand); font-weight: 700; color: var(--ink); letter-spacing: .02em; }
+.hint.miss { color: var(--miss); font-weight: 700; }
+.mascot { position: absolute; right: 6px; top: -46px; width: 48px; pointer-events: none; }
+.mascot-wrap svg, .mascot svg { width: 100%; height: auto; display: block; overflow: visible; }
+.pp { transform-origin: 50% 90%; animation: bob 2.4s ease-in-out infinite; }
+.pp .mo { display: none; }
+.pp .mo-n { display: block; }
+.pp.happy { animation: hop .5s ease-out; }
+.pp.happy .mo-n, .pp.sad .mo-n { display: none; }
+.pp.happy .mo-h { display: block; }
+.pp.sad { animation: no .45s; }
+.pp.sad .mo-s { display: block; }
+.pp.dance { animation: sway var(--beat-dur, 1.1s) ease-in-out infinite alternate; }
+.pp .eyes { transform-origin: 40px 64px; animation: blink 4s infinite; }
+.kb { position: relative; z-index: 2; display: grid; gap: 7px; padding: 8px 6px calc(10px + env(safe-area-inset-bottom, 0px)); background: color-mix(in srgb, var(--paper) 82%, transparent); border-top: 1px solid var(--line); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.kb-row { display: flex; justify-content: center; gap: 5px; }
+.key { flex: 1 1 0; max-width: 46px; height: 50px; border-radius: 8px; border: 1.5px solid var(--key-edge); background: var(--key); box-shadow: 0 2px 0 var(--key-edge); font-family: var(--font-hand); font-weight: 700; font-size: 21px; color: var(--ink); padding: 0; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+.key.wide { max-width: 64px; flex-grow: 1.5; display: grid; place-items: center; }
+.key.wide svg { width: 22px; height: 22px; }
+.key.down { transform: translateY(2px); box-shadow: none; background: var(--pencil); }
+.key.bad { background: var(--miss-tint); }
+.flashword { position: absolute; z-index: 3; left: 50%; top: 42%; transform: translate(-50%, -50%); font-family: var(--font-display); font-size: clamp(28px, 9vw, 54px); color: var(--sheet); pointer-events: none; white-space: nowrap; text-shadow: 3px 3px 0 var(--paper), -3px 3px 0 var(--paper), 3px -3px 0 var(--paper), -3px -3px 0 var(--paper); animation: banner 1.4s ease-out forwards; }
+.flashword small { display: block; text-align: center; font-family: var(--font-cn); font-size: .42em; color: var(--ink); }
+
+/* stage palette: exam paper -> party */
+#app[data-stage="1"] { --stage-bg: #FFF6EC; }
+#app[data-stage="2"] { --stage-bg: #FFE9DF; }
+#app[data-stage="3"] { --stage-bg: #FFDCE8; }
+#app[data-stage="4"] { --stage-bg: #EAD9FF; }
+#app[data-stage="5"] { --stage-bg: #3B2477; --hud-fg: #FFF4D6; }
+#app[data-stage="6"] { --stage-bg: #24134A; --hud-fg: #FFF4D6; }
+#app[data-stage="7"] { --stage-bg: #140B2C; --hud-fg: #FFF4D6; }
+
+/* ---------- result / tree / book ---------- */
+.page { display: flex; flex-direction: column; height: 100%; }
+.page-head { display: flex; align-items: center; gap: 6px; padding: 8px 8px 0; }
+.page-head h2 { margin: 0; font-family: var(--font-cn); font-weight: 400; font-size: 24px; }
+.page-body { flex: 1; min-height: 0; }
+.page-body .wrap { padding-block: 12px 24px; display: grid; gap: 14px; }
+.page-foot { display: flex; gap: 10px; padding: 10px 16px calc(12px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--line); background: var(--paper); justify-content: center; flex-wrap: wrap; }
+.page-foot .btn { flex: 1 1 140px; max-width: 220px; }
+.score { text-align: center; padding-top: 6px; }
+.score .num { font-family: var(--font-display); font-size: 84px; line-height: 1; color: var(--sheet); font-variant-numeric: tabular-nums; }
+.score .lab { font-family: var(--font-cn); font-size: 18px; }
+.metrics { display: grid; grid-template-columns: repeat(4, 1fr); border: 1.5px solid var(--sheet); border-radius: 10px; overflow: hidden; }
+.metrics div { text-align: center; padding: 8px 2px; border-left: 1.5px solid var(--sheet-tint); }
+.metrics div:first-child { border-left: 0; }
+.metrics b { display: block; font-family: var(--font-display); font-weight: 400; font-size: 17px; font-variant-numeric: tabular-nums; }
+.metrics span { font-size: 11px; color: var(--ink-soft); }
+.events { display: grid; gap: 8px; }
+.event { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 10px; background: #FFF5D9; border: 1.5px solid var(--pencil); font-size: 14px; }
+.event b { font-family: var(--font-cn); font-weight: 400; font-size: 16px; }
+.event .tag { font-family: var(--font-display); font-size: 11px; background: var(--pencil); padding: 2px 6px; border-radius: 5px; flex: none; }
+.extra-cta { border: 2px solid var(--ink); border-radius: 14px; padding: 12px; display: grid; gap: 8px; background: var(--ink); color: var(--paper); text-align: center; }
+.extra-cta p { margin: 0; font-size: 13px; opacity: .85; }
+.extra-cta .btn { background: var(--pencil); color: var(--ink); border-color: var(--pencil); box-shadow: 0 3px 0 #9C6F0B; font-size: 18px; }
+.wlist { display: grid; border-top: 1px solid var(--line); }
+.witem { display: grid; grid-template-columns: auto 1fr auto; gap: 4px 10px; align-items: baseline; padding: 9px 2px; border-bottom: 1px solid var(--line); }
+.witem .w { font-family: var(--font-hand); font-weight: 700; font-size: 18px; }
+.witem .m { font-size: 13px; color: var(--ink-soft); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.witem .r { font-size: 12px; font-weight: 700; color: var(--ok); white-space: nowrap; }
+.witem .r.x { color: var(--miss); }
+.witem .w mark { background: var(--miss-tint); color: var(--miss); border-radius: 2px; }
+.section-title { font-size: 12px; letter-spacing: .1em; color: var(--sheet); font-weight: 700; margin: 4px 0 -6px; }
+.empty { text-align: center; color: var(--ink-soft); padding: 32px 12px; line-height: 1.7; }
+
+.tree { display: grid; grid-template-columns: 34px repeat(4, minmax(0, 1fr)); gap: 14px 12px; align-items: stretch; }
+.tree .ax { font-size: 11px; color: var(--ink-soft); display: grid; place-items: center; text-align: center; line-height: 1.3; }
+.tree .ax.row { writing-mode: vertical-rl; letter-spacing: .1em; font-family: var(--font-cn); font-size: 14px; color: var(--ink); }
+.node { position: relative; border: 1.5px solid var(--ink); border-radius: 10px; background: var(--paper); padding: 6px 4px 7px; display: grid; gap: 3px; justify-items: center; text-align: center; min-height: 72px; box-sizing: border-box; }
+.node .nm { font-family: var(--font-cn); font-size: 14px; }
+.node .ct { font-size: 10px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.node .st { font-size: 10px; font-weight: 700; padding: 0 5px; border-radius: 4px; }
+.node .stars { font-size: 11px; color: var(--pencil); letter-spacing: 1px; line-height: 1; }
+.node .stars .off { color: var(--line); }
+.node.locked { border-style: dashed; border-color: var(--key-edge); color: var(--ink-soft); }
+.node.locked .st { background: var(--line); }
+.node.new .st { background: var(--sheet); color: #fff; }
+.node.learning .st { background: var(--pencil); }
+.node.mastered { background: #E8F6EF; border-color: var(--ok); }
+.node.mastered .st { background: var(--ok); color: #fff; }
+.node::before, .node::after { content: ''; position: absolute; background: var(--key-edge); }
+.node.has-l::before { left: -13px; top: 50%; width: 12px; height: 2px; }
+.node.has-t::after { top: -15px; left: 50%; width: 2px; height: 14px; }
+.node.l-ok::before, .node.t-ok::after { background: var(--ok); }
+.legend { font-size: 12px; color: var(--ink-soft); line-height: 1.7; margin: 0; }
+
+/* ---------- overlay ---------- */
+.overlay { position: absolute; inset: 0; z-index: 20; background: rgba(37, 35, 44, .45); display: grid; place-items: end center; }
+.dialog { width: 100%; max-width: 480px; max-height: 88%; overflow-y: auto; box-sizing: border-box; background: var(--paper); border-radius: 18px 18px 0 0; padding: 18px 16px calc(16px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 14px; animation: up .22s ease-out; }
+.dialog h3 { margin: 0; font-family: var(--font-cn); font-weight: 400; font-size: 22px; }
+.dialog p { margin: 0; font-size: 14px; line-height: 1.65; color: var(--ink-soft); }
+.dialog .row { display: flex; gap: 10px; }
+.dialog .row .btn { flex: 1; }
+.opt { display: grid; gap: 6px; }
+.opt > span { font-size: 13px; font-weight: 700; }
+.seg { display: flex; border: 1.5px solid var(--ink); border-radius: 10px; overflow: hidden; }
+.seg button { flex: 1; border: 0; background: transparent; padding: 9px 4px; font-size: 14px; border-left: 1.5px solid var(--ink); }
+.seg button:first-child { border-left: 0; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); font-weight: 700; }
+.samples { display: flex; flex-wrap: wrap; gap: 6px; }
+.samples span { font-family: var(--font-hand); font-weight: 700; border: 1.5px solid var(--sheet); border-radius: 4px; padding: 2px 8px; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: 14px; }
+.kv dt { color: var(--ink-soft); }
+.kv dd { margin: 0; font-weight: 600; }
+.danger { color: var(--sheet); border-color: var(--sheet); box-shadow: 0 3px 0 var(--sheet); }
+
+@keyframes bob { 0%,100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-3px) rotate(2deg); } }
+@keyframes hop { 0% { transform: translateY(0); } 40% { transform: translateY(-16px) rotate(-10deg); } 70% { transform: translateY(0) rotate(6deg); } 100% { transform: none; } }
+@keyframes no { 0%,100% { transform: none; } 20% { transform: rotate(-12deg); } 45% { transform: rotate(10deg); } 70% { transform: rotate(-6deg); } }
+@keyframes sway { from { transform: rotate(-9deg) translateY(0); } to { transform: rotate(9deg) translateY(-6px); } }
+@keyframes blink { 0%,94%,100% { transform: scaleY(1); } 96% { transform: scaleY(.1); } }
+@keyframes caret { 50% { opacity: 0; } }
+@keyframes pop { 0% { transform: scale(1.35); } 100% { transform: scale(1); } }
+@keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-7px); } 50% { transform: translateX(6px); } 75% { transform: translateX(-3px); } }
+@keyframes bump { 50% { transform: scale(1.25); } }
+@keyframes pulse { to { transform: scale(1.08); } }
+@keyframes banner { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.6); } 15% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); } 25% { transform: translate(-50%, -50%) scale(1); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -62%) scale(1); } }
+@keyframes up { from { transform: translateY(30px); opacity: 0; } }
+#app[data-motion="off"] *, #app[data-motion="off"] *::after { animation: none !important; transition: none !important; }
+#app[data-motion="off"] .sheet { transform: none; }
+@media (max-height: 640px) {
+  .key { height: 42px; font-size: 19px; }
+  .combo { height: 30px; }
+  .combo b { font-size: 26px; }
+  .meaning { font-size: 17px; }
+}
+@media (prefers-reduced-motion: reduce) { .pp, .pp .eyes { animation: none; } }
+</style>
+</head>
+<body>
+
+<div id="app" data-stage="0">
+  <!-- ================= title ================= -->
+  <section id="scr-title" class="screen scroll grid-paper">
+    <div class="wrap">
+      <div class="hero">
+        <div>
+          <div class="eyebrow">CET-4 · <span id="t-total">4521</span> WORDS</div>
+          <h1>嗨拼四级<small>HI-SPELL</small></h1>
+        </div>
+        <div class="mascot-wrap" id="title-mascot"></div>
+      </div>
+      <div class="demo-row" aria-hidden="true">
+        <div class="slot" style="--s:40px">s</div><div class="slot" style="--s:40px">p</div><div class="slot" style="--s:40px">e</div><div class="slot cur" style="--s:40px"></div><div class="slot" style="--s:40px"></div>
+      </div>
+      <div class="start-card">
+        <p class="plan" id="t-plan"></p>
+        <button class="btn primary" id="btn-start">开始</button>
+      </div>
+      <div class="menu">
+        <button class="btn" id="btn-book">错词本<small id="t-book">0 词</small></button>
+        <button class="btn" id="btn-tree">词阶图<small id="t-tree">0 / 16</small></button>
+        <button class="btn" id="btn-settings">设置<small id="t-count">每轮 10 词</small></button>
+      </div>
+      <div class="stats">
+        <div><b id="s-streak">0</b><span>连续天数</span></div>
+        <div><b id="s-today">0</b><span>今日拼词</span></div>
+        <div><b id="s-solved">0</b><span>拼对过</span></div>
+        <div><b id="s-best">0</b><span>最高分</span></div>
+      </div>
+      <p class="about">听发音、看释义，一个字母一个字母地拼。每个字母当场判对错，拼错不扣分，也没有 Game Over。连对越多，画面和音乐越热闹。<br>电脑可直接用键盘输入，回车重听发音。词表来自 <a href="https://github.com/KyleBing/english-vocabulary" target="_blank" rel="noopener">KyleBing/english-vocabulary</a>（BSD-3），玩法参考 <a href="https://github.com/grmchn/dopa-drill" target="_blank" rel="noopener">dopa-drill</a>。记录只存在本浏览器。</p>
+    </div>
+  </section>
+
+  <!-- ================= play ================= -->
+  <section id="scr-play" class="screen" hidden>
+    <canvas id="fx" aria-hidden="true"></canvas>
+    <header class="hud">
+      <button class="icon-btn" id="btn-quit" aria-label="退出本轮"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <div class="prog"><span id="hud-prog">1 / 10</span><div class="bar"><i id="hud-bar"></i></div></div>
+      <div class="clock" id="hud-clock">0:00</div>
+      <div class="dopa"><small>多巴值</small><b id="hud-dopa">1</b></div>
+      <button class="icon-btn" id="btn-mute" aria-label="静音"></button>
+    </header>
+    <div class="stage" id="stage">
+      <div class="combo" id="combo"><b id="combo-n">0</b><span>连击</span><em class="mult" id="combo-mult" hidden>×2 MAX</em><i class="cbar" id="cbar"><i id="combo-bar"></i></i></div>
+      <div class="sheet" id="sheet">
+        <div class="sheet-head"><span id="q-label">第 1 题</span><span class="qnode" id="q-node"></span></div>
+        <div class="prompt">
+          <button class="speak" id="btn-speak" aria-label="播放发音"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12"/></svg></button>
+          <p class="meaning" id="meaning"></p>
+        </div>
+        <div class="slots" id="slots"></div>
+        <p class="hint" id="hint" aria-live="polite"></p>
+        <div class="mascot" id="play-mascot"></div>
+      </div>
+    </div>
+    <div class="kb" id="kb"></div>
+  </section>
+
+  <!-- ================= result ================= -->
+  <section id="scr-result" class="screen page" hidden>
+    <div class="page-body scroll"><div class="wrap" id="result-body"></div></div>
+    <div class="page-foot" id="result-foot"></div>
+  </section>
+
+  <!-- ================= tree ================= -->
+  <section id="scr-tree" class="screen page" hidden>
+    <div class="page-head"><button class="icon-btn back" aria-label="返回"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><h2>词阶图</h2></div>
+    <div class="page-body scroll"><div class="wrap">
+      <p class="legend">4521 个四级词按「常用程度 × 单词长度」分成 16 阶。左边和上边的阶都掌握后，这一阶才会解锁。某一阶最近 6 次里有 5 次一遍拼对，就算掌握。</p>
+      <div class="tree" id="tree"></div>
+    </div></div>
+  </section>
+
+  <!-- ================= book ================= -->
+  <section id="scr-book" class="screen page" hidden>
+    <div class="page-head"><button class="icon-btn back" aria-label="返回"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><h2>错词本</h2></div>
+    <div class="page-body scroll"><div class="wrap" id="book-body"></div></div>
+    <div class="page-foot"><button class="btn primary" id="btn-review">复习错词</button></div>
+  </section>
+
+  <div class="overlay" id="overlay" hidden><div class="dialog" id="dialog" role="dialog" aria-modal="true"></div></div>
+</div>
+
+<script src="words.js"></script>
+<script>
+(() => {
+'use strict';
+// ================================================================ data
+const WORDS = (window.CET4 || []).map(r => ({ w: r[0], m: r[1], node: r[2], ph: r[3] ? [r[3], r[4]] : null }));
+const WI = new Map(WORDS.map((x, i) => [x.w, i]));
+const BY_NODE = Array.from({ length: 16 }, () => []);
+WORDS.forEach((x, i) => BY_NODE[x.node].push(i));
+const FREQ = ['高频', '常见', '进阶', '冷僻'];
+const LEN_NAME = ['短词', '中词', '长词', '超长'];
+const LEN_RANGE = ['3–5 字母', '6–7 字母', '8–9 字母', '10+ 字母'];
+const FREQ_DESC = ['最常用的 25%', '常用度 25–50%', '常用度 50–75%', '最不常见的 25%'];
+const nodeName = (n) => FREQ[n >> 2] + '·' + LEN_NAME[n & 3];
+const prereq = (n) => { const out = []; if (n >> 2) out.push(n - 4); if (n & 3) out.push(n - 1); return out; };
+const ORDER = [...Array(16).keys()].sort((a, b) => ((a >> 2) + (a & 3)) - ((b >> 2) + (b & 3)) || (a >> 2) - (b >> 2));
+const DAY = 864e5;
+const BOX = [0, 1, 2, 4, 8, 16];
+const COMBO_FIRST = 7000, COMBO_NEXT = 4000;
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const rnd = (n) => Math.floor(Math.random() * n);
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const letters = (w) => [...w].filter((c) => c !== '-').length;
+const dayKey = (t = new Date()) => `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+const fmtTime = (ms) => { const s = Math.max(0, Math.round(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+
+// ================================================================ store
+const KEY = 'hispell.v1';
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const DEF = { count: 10, autoSpeak: true, music: true, sfx: true, motion: reduced ? 'low' : 'strong', muted: false };
+let S = load();
+function load() {
+  let d = null;
+  try { d = JSON.parse(localStorage.getItem(KEY)); } catch (e) { /* storage blocked */ }
+  if (!d || typeof d !== 'object') d = {};
+  return {
+    words: d.words || {}, nodes: d.nodes || {}, placed: !!d.placed, book: d.book || [], recent: d.recent || [],
+    days: d.days || {}, stats: Object.assign({ plays: 0, best: 0, solved: 0, maxCombo: 0 }, d.stats),
+    settings: Object.assign({}, DEF, d.settings),
+  };
+}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* ignore */ } }
+const nodeRec = (n) => S.nodes[n] || (S.nodes[n] = { h: [], r: [], mastered: 0, stars: 0 });
+const isMastered = (n) => !!(S.nodes[n] && S.nodes[n].mastered);
+const isUnlocked = (n) => prereq(n).every(isMastered);
+function nodeState(n) {
+  if (isMastered(n)) return 'mastered';
+  if (!isUnlocked(n)) return 'locked';
+  return S.nodes[n] && S.nodes[n].h.length ? 'learning' : 'new';
+}
+const STATE_TXT = { locked: '未解锁', new: 'NEW', learning: '练习中', mastered: '已掌握' };
+function ancestors(n, set = new Set()) { for (const p of prereq(n)) if (!set.has(p)) { set.add(p); ancestors(p, set); } return set; }
+const sum = (a) => a.reduce((x, y) => x + y, 0);
+const median = (a) => { const s = [...a].sort((x, y) => x - y); const k = s.length >> 1; return s.length % 2 ? s[k] : (s[k - 1] + s[k]) / 2; };
+function calcStars(r) {
+  if (!r.mastered) return 0;
+  let s = 1;
+  if (r.h.length >= 20 && sum(r.h.slice(-20)) >= 18) s = 2;
+  if (s >= 2) {
+    const fast = r.r.filter((x) => x != null);
+    if (r.r.length >= 10 && fast.length >= 5 && median(fast) <= 1) s = 3;
+  }
+  return Math.max(r.stars || 0, s);
+}
+function masterNode(n, events) {
+  const r = nodeRec(n);
+  if (r.mastered) return;
+  r.mastered = Date.now(); r.stars = Math.max(r.stars, 1);
+  events && events.push({ t: 'master', n });
+}
+const targetMs = (w) => 3000 + 800 * letters(w);
+function streak() {
+  let d = new Date(); let n = 0;
+  if (!S.days[dayKey(d)]) d = new Date(d.getTime() - DAY);
+  while (S.days[dayKey(d)]) { n++; d = new Date(d.getTime() - DAY); }
+  return n;
+}
+const today = () => S.days[dayKey()] || (S.days[dayKey()] = { plays: 0, words: 0, best: 0 });
+
+// ================================================================ word picking
+function pickFromNode(n, avoid) {
+  const fresh = [], seen = [];
+  for (const i of BY_NODE[n]) {
+    if (avoid.has(i)) continue;
+    (S.words[WORDS[i].w] ? seen : fresh).push(i);
+  }
+  // Unseen words first, most frequent first (list is frequency-sorted).
+  if (fresh.length) return fresh[rnd(Math.min(30, fresh.length))];
+  if (seen.length) {
+    seen.sort((a, b) => (S.words[WORDS[a].w].due || 0) - (S.words[WORDS[b].w].due || 0));
+    return seen[rnd(Math.min(10, seen.length))];
+  }
+  return BY_NODE[n][rnd(BY_NODE[n].length)];
+}
+function frontier() {
+  const f = ORDER.filter((n) => isUnlocked(n) && !isMastered(n)).slice(0, 3);
+  return f.length ? f : ORDER.filter(isMastered).slice(-4);
+}
+function reviewPool() {
+  const now = Date.now();
+  const book = S.book.slice().reverse().map((w) => WI.get(w)).filter((x) => x != null);
+  const due = Object.entries(S.words).filter(([w, r]) => r.box > 0 && r.due <= now && WI.has(w))
+    .sort((a, b) => a[1].due - b[1].due).map(([w]) => WI.get(w));
+  return [...new Set([...book, ...due])];
+}
+function planAdaptive(N, avoid) {
+  const pool = reviewPool().filter((i) => !avoid.has(i));
+  const nRev = pool.length ? Math.min(pool.length, Math.max(1, Math.round(N * 0.3))) : 0;
+  const nodes = frontier();
+  const fresh = [];
+  for (let k = 0; k < N - nRev; k++) { const i = pickFromNode(nodes[k % nodes.length], avoid); avoid.add(i); fresh.push(i); }
+  const rev = pool.slice(0, nRev);
+  rev.forEach((i) => avoid.add(i));
+  // Spread review words through the round instead of front-loading them.
+  const q = fresh.slice();
+  rev.forEach((i, k) => q.splice(Math.min(q.length, Math.round(((k + 1) * N) / (nRev + 1)) - 1 + k), 0, i));
+  return q;
+}
+
+// ================================================================ audio
+const A = { ctx: null, master: null, music: null, duck: null, sfx: null, noise: null, playing: false, timer: 0, step: 0, nextT: 0, bpm: 104, stage: 0 };
+const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
+function audioInit() {
+  if (A.ctx) { if (A.ctx.state === 'suspended') A.ctx.resume(); return; }
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return;
+  const c = A.ctx = new AC();
+  const comp = c.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 4;
+  A.master = c.createGain(); A.master.connect(comp); comp.connect(c.destination);
+  A.music = c.createGain(); A.duck = c.createGain(); A.music.connect(A.duck); A.duck.connect(A.master);
+  A.sfx = c.createGain(); A.sfx.connect(A.master);
+  const len = c.sampleRate; const b = c.createBuffer(1, len, c.sampleRate); const d = b.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  A.noise = b;
+  applyAudio();
+}
+function applyAudio() {
+  if (!A.ctx) return;
+  const t = A.ctx.currentTime;
+  A.master.gain.setTargetAtTime(S.settings.muted ? 0 : 0.85, t, 0.03);
+  A.music.gain.setTargetAtTime(S.settings.music ? 0.9 : 0, t, 0.05);
+  A.sfx.gain.setTargetAtTime(S.settings.sfx ? 1 : 0, t, 0.03);
+}
+function tone(dest, t, midi, dur, o = {}) {
+  const c = A.ctx; const osc = c.createOscillator(); const g = c.createGain();
+  osc.type = o.type || 'triangle'; osc.frequency.value = mtof(midi); osc.detune.value = o.detune || 0;
+  const vol = o.vol || 0.2, atk = o.attack || 0.005, rel = o.release || 0.12;
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + atk);
+  g.gain.setValueAtTime(vol, t + Math.max(atk, dur * 0.3));
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur + rel);
+  if (o.filter) { const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = o.filter; osc.connect(f); f.connect(g); } else osc.connect(g);
+  if (o.slide) osc.frequency.exponentialRampToValueAtTime(mtof(midi + o.slide), t + dur);
+  g.connect(dest); osc.start(t); osc.stop(t + dur + rel + 0.05);
+}
+function noiseHit(dest, t, dur, type, freq, vol) {
+  const c = A.ctx; const s = c.createBufferSource(); s.buffer = A.noise;
+  const f = c.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = type === 'bandpass' ? 1.2 : 0.7;
+  const g = c.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  s.connect(f); f.connect(g); g.connect(dest); s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.02);
+}
+function kick(t) {
+  const c = A.ctx; const o = c.createOscillator(); const g = c.createGain();
+  o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.13);
+  g.gain.setValueAtTime(0.8, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.32);
+  o.connect(g); g.connect(A.music); o.start(t); o.stop(t + 0.35);
+}
+const CHORDS = [[48, 52, 55], [43, 47, 50], [45, 48, 52], [41, 45, 48]]; // C G Am F
+const BASS = [0, 0, 12, 0, 7, 0, 12, 7];
+function schedStep(step, t) {
+  const st = A.stage, s16 = step % 16, bar = Math.floor(step / 16), ch = CHORDS[bar % 4], sp = 60 / A.bpm / 4;
+  if (s16 === 0) {
+    ch.forEach((m, k) => tone(A.music, t, m + 12, sp * 15, { type: 'sine', vol: 0.045, attack: 0.35, release: 0.5, detune: k * 5 - 5 }));
+    if (st >= 7 && bar % 2 === 0) noiseHit(A.music, t, 1.1, 'highpass', 4000, 0.12);
+  }
+  if (st >= 1 && (st >= 3 ? s16 % 4 === 0 : s16 % 8 === 0)) kick(t);
+  if (st >= 2 && s16 % 4 === 2) noiseHit(A.music, t, 0.05, 'highpass', 8000, 0.1);
+  if (st >= 5 && s16 % 2 === 1) noiseHit(A.music, t, 0.03, 'highpass', 9000, 0.045);
+  if (st >= 3 && s16 % 2 === 0) tone(A.music, t, ch[0] - 12 + BASS[s16 / 2], sp * 1.6, { type: 'sawtooth', vol: 0.08, filter: 500 + st * 120 });
+  if (st >= 4 && (s16 === 4 || s16 === 12)) noiseHit(A.music, t, 0.14, 'bandpass', 1700, 0.22);
+  if (st >= 5) tone(A.music, t, ch[[0, 1, 2, 1][s16 % 4]] + 24 + (st >= 6 && s16 >= 8 ? 12 : 0), sp * 0.7, { type: 'square', vol: 0.028, filter: 2600 });
+  if (st >= 6 && s16 % 4 === 3 && Math.random() < 0.55) tone(A.music, t, 79 + [0, 2, 4, 7, 9][rnd(5)], sp * 2, { type: 'sine', vol: 0.05 });
+  if (s16 % 4 === 0) { const d = (t - A.ctx.currentTime) * 1000; setTimeout(() => FX.beat(s16 === 0), Math.max(0, d)); }
+}
+function tick() { if (!A.playing) return; while (A.nextT < A.ctx.currentTime + 0.12) { schedStep(A.step, A.nextT); A.nextT += 60 / A.bpm / 4; A.step++; } }
+function musicStart() { if (!A.ctx) return; A.playing = true; A.step = 0; A.nextT = A.ctx.currentTime + 0.08; clearInterval(A.timer); A.timer = setInterval(tick, 25); }
+function musicStop() { A.playing = false; clearInterval(A.timer); }
+function setAudioStage(st) { A.stage = st; A.bpm = 104 + st * 3; document.documentElement.style.setProperty('--beat-dur', (120 / A.bpm).toFixed(2) + 's'); }
+function duck(on) { if (!A.ctx) return; A.duck.gain.setTargetAtTime(on ? 0.35 : 1, A.ctx.currentTime, 0.06); }
+const PENT = [0, 2, 4, 7, 9];
+function sfxLetter(k) { if (!A.ctx) return; const t = A.ctx.currentTime; const m = 72 + 12 * Math.floor(k / 5) + PENT[k % 5]; tone(A.sfx, t, Math.min(m, 100), 0.09, { type: 'triangle', vol: 0.22 }); tone(A.sfx, t, Math.min(m + 12, 108), 0.05, { type: 'sine', vol: 0.06 }); }
+function sfxWord(first) {
+  if (!A.ctx) return; const t = A.ctx.currentTime;
+  const notes = first ? [72, 76, 79, 84, 88] : [72, 76, 79];
+  notes.forEach((m, k) => tone(A.sfx, t + k * 0.055, m, 0.14, { type: 'triangle', vol: 0.16 }));
+  if (first) noiseHit(A.sfx, t + 0.22, 0.4, 'highpass', 7000, 0.05);
+}
+function sfxMiss() {
+  if (!A.ctx) return; const t = A.ctx.currentTime;
+  tone(A.sfx, t, 62, 0.22, { type: 'sine', vol: 0.22, slide: -9 }); tone(A.sfx, t + 0.08, 58, 0.18, { type: 'triangle', vol: 0.08, slide: -5 });
+  A.duck.gain.setTargetAtTime(0.3, t, 0.02); A.duck.gain.setTargetAtTime(1, t + 0.35, 0.12);
+}
+function sfxFanfare(big) {
+  if (!A.ctx) return; const t = A.ctx.currentTime;
+  const seq = big ? [67, 72, 76, 79, 84, 88, 91] : [72, 76, 79, 84];
+  seq.forEach((m, k) => { tone(A.sfx, t + k * 0.07, m, 0.18, { type: 'square', vol: 0.06, filter: 3500 }); tone(A.sfx, t + k * 0.07, m - 12, 0.18, { type: 'triangle', vol: 0.1 }); });
+  noiseHit(A.sfx, t + seq.length * 0.07, 0.8, 'highpass', 5000, 0.08);
+}
+function sfxGong() { if (!A.ctx) return; const t = A.ctx.currentTime; [48, 55, 60, 64].forEach((m, k) => tone(A.sfx, t, m, 1.2, { type: 'sine', vol: 0.12 - k * 0.02, release: 1 })); }
+
+// ---------------- speech
+let voice = null;
+const canSpeak = 'speechSynthesis' in window;
+function pickVoice() {
+  if (!canSpeak) return;
+  const vs = speechSynthesis.getVoices().filter((v) => /^en[-_]/i.test(v.lang));
+  const pref = ['Samantha', 'Google US English', 'Aria', 'Jenny', 'Ava', 'Allison', 'Karen', 'Daniel', 'Alex'];
+  voice = pref.map((p) => vs.find((v) => v.name.includes(p))).find(Boolean) || vs.find((v) => /en[-_]US/i.test(v.lang)) || vs[0] || null;
+}
+if (canSpeak) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+function speak(text, rate = 0.85) {
+  if (!canSpeak) return;
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US'; if (voice) u.voice = voice; u.rate = rate;
+    const btn = $('btn-speak');
+    u.onstart = () => { duck(true); btn.classList.add('talking'); };
+    u.onend = u.onerror = () => { duck(false); btn.classList.remove('talking'); };
+    speechSynthesis.speak(u);
+  } catch (e) { /* no voice */ }
+}
+
+// ================================================================ fx canvas
+const FX = {
+  cv: null, cx: null, w: 0, h: 0, dpr: 1, parts: [], blobs: [], stage: 0, pulse: 0, ang: 0, raf: 0, on: false,
+  init() { this.cv = $('fx'); this.cx = this.cv.getContext('2d'); addEventListener('resize', () => this.resize()); },
+  resize() { const r = this.cv.getBoundingClientRect(); this.dpr = Math.min(2, devicePixelRatio || 1); this.w = r.width; this.h = r.height; this.cv.width = r.width * this.dpr; this.cv.height = r.height * this.dpr; },
+  start() { this.resize(); this.parts = []; this.blobs = []; if (!this.on) { this.on = true; this.raf = requestAnimationFrame((t) => this.loop(t)); } },
+  stop() { this.on = false; cancelAnimationFrame(this.raf); },
+  get k() { return S.settings.motion === 'off' ? 0 : S.settings.motion === 'low' ? 0.35 : 1; },
+  beat(strong) {
+    if (!this.on || this.stage < 1) return;
+    this.pulse = strong ? 1 : 0.6;
+    if (this.k && this.stage >= 1) { const s = $('sheet'); s.style.setProperty('--beat', 1 + 0.008 * Math.min(this.stage, 5) * this.pulse * this.k); setTimeout(() => s.style.setProperty('--beat', 1), 110); }
+  },
+  palette() { return this.stage >= 5 ? ['#FF5FA2', '#FFD23F', '#3EE6C1', '#7B8CFF', '#FF8A3D'] : ['#D6443A', '#F2B229', '#7A4CD9', '#168C62', '#FF8A3D']; },
+  burst(x, y, n, glyph) {
+    const k = this.k; if (!k) return;
+    const pal = this.palette(); n = Math.round(n * k);
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, v = 2 + Math.random() * 5 * (0.6 + this.stage * 0.12);
+      const isG = glyph && i < Math.ceil(n / 4);
+      this.parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 3, g: 0.18, life: 1, dec: 0.012 + Math.random() * 0.012, rot: Math.random() * 6, vr: (Math.random() - 0.5) * 0.3, size: isG ? 18 + Math.random() * 16 : 4 + Math.random() * 5, col: pal[rnd(pal.length)], kind: isG ? 'g' : (Math.random() < 0.5 ? 'r' : 'c'), ch: glyph ? glyph[rnd(glyph.length)] : '' });
+    }
+    if (this.parts.length > 500) this.parts.splice(0, this.parts.length - 500);
+  },
+  firework(word) {
+    const k = this.k; if (!k) return;
+    const shots = Math.min(5, this.stage - 1);
+    for (let s = 0; s < shots; s++) setTimeout(() => this.burst(this.w * (0.15 + Math.random() * 0.7), this.h * (0.12 + Math.random() * 0.3), 26, word.toUpperCase().replace(/-/g, '')), s * 140);
+  },
+  loop(t) {
+    if (!this.on) return;
+    const { cx, w, h, dpr } = this; const k = this.k;
+    cx.setTransform(dpr, 0, 0, dpr, 0, 0); cx.clearRect(0, 0, w, h);
+    const st = this.stage; const pal = this.palette();
+    // drifting colour blobs
+    const want = k ? Math.max(0, Math.min(7, (st - 1) * 2)) : 0;
+    while (this.blobs.length < want) this.blobs.push({ x: Math.random() * w, y: Math.random() * h, r: 90 + Math.random() * 140, vx: (Math.random() - 0.5) * 0.5, vy: (Math.random() - 0.5) * 0.5, c: pal[rnd(pal.length)] });
+    if (this.blobs.length > want) this.blobs.length = want;
+    for (const b of this.blobs) {
+      b.x += b.vx * (1 + st * 0.3) * k; b.y += b.vy * (1 + st * 0.3) * k;
+      if (b.x < -b.r) b.x = w + b.r; if (b.x > w + b.r) b.x = -b.r; if (b.y < -b.r) b.y = h + b.r; if (b.y > h + b.r) b.y = -b.r;
+      const g = cx.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r * (1 + this.pulse * 0.12));
+      g.addColorStop(0, b.c + (st >= 5 ? '55' : '33')); g.addColorStop(1, b.c + '00');
+      cx.fillStyle = g; cx.beginPath(); cx.arc(b.x, b.y, b.r * 1.15, 0, 7); cx.fill();
+    }
+    // rotating light rays behind the sheet
+    if (st >= 4 && k) {
+      const sh = $('sheet').getBoundingClientRect(), cr = this.cv.getBoundingClientRect();
+      const ox = sh.left - cr.left + sh.width / 2, oy = sh.top - cr.top + sh.height / 2;
+      this.ang += 0.003 * (st - 2) * k;
+      const rays = 12, R = Math.hypot(w, h);
+      cx.save(); cx.translate(ox, oy); cx.rotate(this.ang);
+      cx.fillStyle = st >= 5 ? `rgba(255,230,140,${0.07 + this.pulse * 0.05})` : `rgba(255,255,255,${0.35 + this.pulse * 0.15})`;
+      for (let i = 0; i < rays; i++) { cx.rotate((Math.PI * 2) / rays); cx.beginPath(); cx.moveTo(0, 0); cx.lineTo(R, -R * 0.09); cx.lineTo(R, R * 0.09); cx.fill(); }
+      cx.restore();
+    }
+    // ambient sparkles at high stages
+    if (st >= 6 && k && Math.random() < 0.25 * k) this.parts.push({ x: Math.random() * w, y: h + 10, vx: 0, vy: -1.5 - Math.random() * 2, g: 0, life: 1, dec: 0.006, rot: 0, vr: 0, size: 2 + Math.random() * 3, col: pal[rnd(pal.length)], kind: 'c' });
+    // particles
+    for (const p of this.parts) {
+      p.vy += p.g; p.vx *= 0.99; p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.life -= p.dec;
+      cx.globalAlpha = Math.max(0, p.life); cx.fillStyle = p.col;
+      if (p.kind === 'g') { cx.save(); cx.translate(p.x, p.y); cx.rotate(p.rot * 0.3); cx.font = `800 ${p.size}px 'Shantell Sans', sans-serif`; cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.fillText(p.ch, 0, 0); cx.restore(); }
+      else if (p.kind === 'r') { cx.save(); cx.translate(p.x, p.y); cx.rotate(p.rot); cx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2); cx.restore(); }
+      else { cx.beginPath(); cx.arc(p.x, p.y, p.size / 2, 0, 7); cx.fill(); }
+    }
+    cx.globalAlpha = 1;
+    this.parts = this.parts.filter((p) => p.life > 0 && p.y < h + 60);
+    this.pulse *= 0.9;
+    hudTick();
+    this.raf = requestAnimationFrame((tt) => this.loop(tt));
+  },
+};
+
+// ================================================================ mascot
+const MASCOT = `<svg viewBox="0 0 80 150" aria-hidden="true"><g class="pp">
+<path class="arm" d="M21 80 q-11 3 -15 -7" stroke="#25232C" stroke-width="3" fill="none" stroke-linecap="round"/>
+<path class="arm" d="M59 80 q11 3 15 -7" stroke="#25232C" stroke-width="3" fill="none" stroke-linecap="round"/>
+<rect x="22" y="6" width="36" height="22" rx="9" fill="#F28DA6" stroke="#25232C" stroke-width="2.5"/>
+<rect x="20" y="26" width="40" height="15" fill="#CDD0D7" stroke="#25232C" stroke-width="2.5"/>
+<path d="M21 31h38M21 36h38" stroke="#9298A3" stroke-width="1.6"/>
+<path d="M20 41h40v61l-20 38-20-38z" fill="#E9C89A" stroke="#25232C" stroke-width="2.5" stroke-linejoin="round"/>
+<rect x="20" y="41" width="40" height="61" fill="#F2B229" stroke="#25232C" stroke-width="2.5"/>
+<rect x="33" y="42.5" width="14" height="58" fill="#F8CA57"/>
+<path d="M34 128h12l-6 12z" fill="#25232C"/>
+<text x="40" y="96" text-anchor="middle" font-family="Bungee, sans-serif" font-size="9" fill="#25232C" opacity=".55">2B</text>
+<g class="eyes"><ellipse cx="32" cy="63" rx="3.3" ry="4.4" fill="#25232C"/><ellipse cx="48" cy="63" rx="3.3" ry="4.4" fill="#25232C"/><circle cx="33" cy="61.5" r="1.1" fill="#fff"/><circle cx="49" cy="61.5" r="1.1" fill="#fff"/></g>
+<circle cx="27" cy="72" r="3.6" fill="#F28DA6" opacity=".7"/><circle cx="53" cy="72" r="3.6" fill="#F28DA6" opacity=".7"/>
+<path class="mo mo-n" d="M35 72 q5 5 10 0" stroke="#25232C" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+<path class="mo mo-h" d="M33 70 q7 13 14 0z" fill="#25232C"/>
+<path class="mo mo-s" d="M34 75 q3 -3 6 0 q3 3 6 0" stroke="#25232C" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+</g></svg>`;
+function mascotAct(cls) {
+  const pp = document.querySelector('#play-mascot .pp'); if (!pp) return;
+  pp.classList.remove('happy', 'sad'); void pp.getBoundingClientRect(); pp.classList.add(cls);
+  clearTimeout(pp._t); pp._t = setTimeout(() => pp.classList.remove(cls), 600);
+}
+
+// ================================================================ screens
+const SCREENS = ['title', 'play', 'result', 'tree', 'book'];
+function show(name) {
+  SCREENS.forEach((s) => { $('scr-' + s).hidden = s !== name; });
+  if (name !== 'play') { FX.stop(); musicStop(); if (canSpeak) speechSynthesis.cancel(); }
+  if (name === 'title') renderTitle();
+  if (name === 'tree') renderTree();
+  if (name === 'book') renderBook();
+  $('app').dataset.stage = name === 'play' && G ? G.stage : 0;
+}
+function renderTitle() {
+  $('t-total').textContent = WORDS.length;
+  const book = S.book.filter((w) => WI.has(w)).length;
+  $('t-book').textContent = book + ' 词';
+  $('t-tree').textContent = ORDER.filter(isMastered).length + ' / 16';
+  $('t-count').textContent = '每轮 ' + S.settings.count + ' 词';
+  $('s-streak').textContent = streak();
+  $('s-today').textContent = (S.days[dayKey()] || {}).words || 0;
+  $('s-solved').textContent = Object.values(S.words).filter((r) => r.ok > 0).length;
+  $('s-best').textContent = S.stats.best;
+  const btn = $('btn-start');
+  if (!S.placed) {
+    btn.textContent = '开始 · 实力测试';
+    $('t-plan').innerHTML = '第一次玩先拼 <b>10 个词</b>，从高频短词一路往难处跳，找到你的起点。拼对的阶连同更简单的阶会直接记为掌握。';
+  } else {
+    btn.textContent = '开始 · 今天的一轮';
+    const f = frontier(); const rev = reviewPool().length;
+    const nRev = rev ? Math.min(rev, Math.max(1, Math.round(S.settings.count * 0.3))) : 0;
+    $('t-plan').innerHTML = `这一轮：<b>${f.map(nodeName).join('、')}</b> 的新词` + (nRev ? `，穿插 <b>${nRev}</b> 个该复习的词。` : '。') + ' 一遍拼对 80% 以上可以挑战 90 秒加时。';
+  }
+}
+
+// ================================================================ game
+let G = null;
+const B = (f) => 2.3 * Math.pow(clamp(f, 0, 1), 1.15);
+const X = (n) => 2.3 + 3.0 * (1 - Math.exp(-n / 10));
+const stageOf = (L) => (L < 0.35 ? 0 : L < 0.8 ? 1 : L < 1.3 ? 2 : L < 1.8 ? 3 : L < 2.5 ? 4 : L < 3.4 ? 5 : L < 4.6 ? 6 : 7);
+const MILESTONES = [[2, '多巴值 100！'], [3, '多巴值 破千！'], [4, '多巴值 1万！'], [5, '多巴值 10万！'], [6, '多巴值 100万！'], [7, '多巴值 1000万！'], [8, '多巴值 1亿！'], [9, '多巴值 10亿！']];
+const COMBO_MARKS = new Set([10, 20, 30, 50, 75]);
+function fmtDopa(L) {
+  const v = Math.pow(10, L);
+  if (v < 1e4) return String(Math.round(v));
+  for (const [u, n] of [[1e8, '亿'], [1e4, '万']]) if (v >= u) { const x = v / u; return (x < 10 ? (Math.floor(x * 10) / 10).toFixed(1) : Math.floor(x)) + n; }
+  return String(Math.round(v));
+}
+
+function startGame(mode, opt = {}) {
+  audioInit(); pickVoice();
+  const avoid = new Set(S.recent.map((w) => WI.get(w)).filter((x) => x != null));
+  let N = mode === 'placement' ? 10 : S.settings.count;
+  let queue = [];
+  if (mode === 'adaptive') queue = planAdaptive(N, avoid);
+  else if (mode === 'review') { queue = S.book.slice().reverse().map((w) => WI.get(w)).filter((x) => x != null).slice(0, Math.min(N, 10)); N = queue.length; }
+  else if (mode === 'node') for (let k = 0; k < N; k++) { const i = pickFromNode(opt.node, avoid); avoid.add(i); queue.push(i); }
+  if (!N) return;
+  G = {
+    mode, node: opt.node, N, queue, q: 0, phase: 'basic', L: 0, stage: 0, combo: 0, maxCombo: 0, firstOk: 0, misses: 0,
+    avoid, results: [], extraResults: [], extraOk: 0, score: 0, events: [], t0: performance.now(), timeMs: 0,
+    unlockedBefore: new Set(ORDER.filter(isUnlocked)), inputOpen: false, cur: null, comboDeadline: 0, comboLimit: COMBO_FIRST,
+    pl: mode === 'placement' ? { pos: 0, step: 3, last: -1 } : null, nextMilestone: 0,
+  };
+  $('app').dataset.stage = 0; setAudioStage(0);
+  show('play'); updateMute(); FX.stage = 0; FX.start(); musicStart();
+  renderHud(); nextWord();
+}
+function nodeLabel() {
+  if (G.phase === 'extra') return '加时 · ' + nodeName(WORDS[G.cur.idx].node);
+  return nodeName(WORDS[G.cur.idx].node);
+}
+function nextWord() {
+  if (G.phase === 'basic' && G.q >= G.N) return finishBasic();
+  let idx;
+  if (G.phase === 'extra') idx = pickExtra();
+  else if (G.mode === 'placement') idx = pickFromNode(ORDER[G.pl.pos], G.avoid);
+  else idx = G.queue[G.q];
+  G.avoid.add(idx);
+  const x = WORDS[idx];
+  G.cur = { idx, w: x.w, cells: [...x.w], pos: 0, missAt: {}, miss: 0, t0: performance.now(), wrong: null, ghost: new Set(), missPos: new Set() };
+  skipFixed();
+  $('sheet').classList.remove('done');
+  renderWord(); renderHud();
+  $('hint').textContent = canSpeak ? '' : '这个浏览器不支持发音，看释义来拼吧';
+  $('hint').className = 'hint';
+  G.inputOpen = true;
+  G.comboLimit = COMBO_FIRST; G.comboDeadline = performance.now() + COMBO_FIRST;
+  if (S.settings.autoSpeak) setTimeout(() => G && G.cur && G.cur.idx === idx && speak(x.w), 120);
+}
+function skipFixed() { const c = G.cur; while (c.pos < c.cells.length && !/[a-z]/i.test(c.cells[c.pos])) c.pos++; }
+function pickExtra() {
+  if (!G.extraNodes) {
+    let nodes;
+    if (G.mode === 'node') { nodes = ORDER.filter((n) => prereq(n).includes(G.node)); if (!nodes.length) nodes = [G.node]; }
+    else { const un = ORDER.filter((n) => !isMastered(n)); nodes = un.length ? un.slice(0, 6).slice(-3) : ORDER.slice(-3); }
+    G.extraNodes = nodes;
+  }
+  return pickFromNode(G.extraNodes[G.extraOk % G.extraNodes.length], G.avoid);
+}
+
+function renderWord() {
+  const c = G.cur; const el = $('slots');
+  const avail = $('sheet').clientWidth - 28;
+  const n = c.cells.length; const gap = n > 11 ? 3 : 5;
+  const s = Math.max(16, Math.min(46, Math.floor((avail - gap * (n - 1)) / n)));
+  el.style.setProperty('--gap', gap + 'px');
+  el.innerHTML = c.cells.map((ch, i) => {
+    const fixed = !/[a-z]/i.test(ch);
+    let cls = 'slot', txt = '';
+    if (fixed) { cls += ' fixed'; txt = esc(ch); }
+    else if (i < c.pos) { cls += ' ok'; if (c.missPos.has(i)) cls += ' was-miss'; txt = esc(ch); }
+    else if (i === c.pos) {
+      if (c.wrong) { cls += ' miss'; txt = esc(c.wrong); }
+      else { cls += ' cur'; if (c.ghost.has(i)) { cls += ' ghost'; txt = `<span class="g">${esc(ch)}</span>`; } }
+      if ((c.missAt[i] || 0) >= 2) cls += ' hl';
+    }
+    return `<div class="${cls}" style="--s:${s}px" data-i="${i}">${txt}</div>`;
+  }).join('');
+  const senses = WORDS[c.idx].m.split(/\s{2,}/).map((t) => {
+    const m = t.match(/^([a-z&]+)\.\s*(.*)$/i);
+    return m ? `<span class="sense"><span class="pos">${esc(m[1])}</span>${esc(m[2])}</span>` : `<span class="sense">${esc(t)}</span>`;
+  });
+  $('meaning').innerHTML = senses.join(' ');
+  $('q-label').textContent = G.phase === 'extra' ? `加时 第 ${G.extraOk + 1} 词` : (G.mode === 'placement' ? `实力测试 ${G.q + 1}` : `第 ${G.q + 1} 题`) + ` · ${letters(c.w)} 个字母`;
+  $('q-node').textContent = nodeLabel();
+}
+function renderSlot(i) {
+  // Re-render only the changed slots to keep the pop animation on the right cell.
+  renderWord();
+  const el = $('slots').querySelector(`[data-i="${i}"]`);
+  return el;
+}
+
+function onKey(ch) {
+  if (!G || !G.inputOpen) return;
+  const c = G.cur; const exp = c.cells[c.pos].toLowerCase();
+  if (ch === exp) {
+    c.wrong = null;
+    const i = c.pos; c.pos++;
+    G.combo++; G.maxCombo = Math.max(G.maxCombo, G.combo);
+    const m = letters(c.w); const s = letters(c.w.slice(0, c.pos));
+    gainDopa(s, m);
+    sfxLetter(s - 1 + (G.stage >= 4 ? 2 : 0));
+    skipFixed();
+    const el = renderSlot(i);
+    if (el && G.stage >= 1) { const r = el.getBoundingClientRect(), cr = FX.cv.getBoundingClientRect(); FX.burst(r.left - cr.left + r.width / 2, r.top - cr.top + r.height / 2, 4 + G.stage * 3, G.stage >= 3 ? ch.toUpperCase() : ''); }
+    if (COMBO_MARKS.has(G.combo) || (G.combo >= 100 && G.combo % 50 === 0)) { flash(`${G.combo} 连击！`, G.combo >= 20 ? '多巴值 ×2' : '再接再厉'); sfxFanfare(G.combo >= 30); }
+    if (c.pos >= c.cells.length) return completeWord();
+    G.comboLimit = COMBO_NEXT; G.comboDeadline = performance.now() + COMBO_NEXT;
+    if (!c.miss) { $('hint').textContent = ''; }
+  } else {
+    c.wrong = ch;
+    const k = c.missAt[c.pos] = (c.missAt[c.pos] || 0) + 1;
+    c.miss++; c.missPos.add(c.pos); G.misses++;
+    if (G.combo >= 5) flash(`${G.combo} 连击`, '到此为止，没关系');
+    G.combo = 0;
+    sfxMiss(); mascotAct('sad');
+    const sh = $('sheet'); sh.classList.remove('shake'); void sh.offsetWidth; if (FX.k) sh.classList.add('shake');
+    const hint = $('hint'); hint.className = 'hint miss';
+    if (k === 1) hint.textContent = '差一点！换个字母试试';
+    else if (k === 2) {
+      const ph = WORDS[c.idx].ph;
+      hint.className = 'hint';
+      hint.innerHTML = ph ? `慢速再听一遍 · 词组 <span class="ph">${esc(ph[0])}</span> ${esc(ph[1])}` : '慢速再听一遍，注意这个位置的发音';
+      speak(c.w, 0.55);
+    } else { c.ghost.add(c.pos); hint.className = 'hint miss'; hint.textContent = '照着浅色字母拼'; }
+    renderWord();
+    const kb = document.querySelector(`.key[data-k="${ch}"]`); if (kb) { kb.classList.add('bad'); setTimeout(() => kb.classList.remove('bad'), 250); }
+  }
+  renderHud();
+}
+function onBack() { if (G && G.inputOpen && G.cur.wrong) { G.cur.wrong = null; renderWord(); } }
+
+function gainDopa(s, m) {
+  let inc;
+  if (G.phase === 'basic') { const N = G.N, q = G.q; inc = B((q + s / m) / N) - B((q + (s - 1) / m) / N); }
+  else { const k = G.extraOk; inc = (X(k + 1) - X(k)) / m; }
+  const M = 1 + Math.min(1, G.combo / 20);
+  G.L = Math.min(9.08, G.L + Math.max(0.003, inc) * M);
+  while (G.nextMilestone < MILESTONES.length && G.L >= MILESTONES[G.nextMilestone][0]) {
+    flash(MILESTONES[G.nextMilestone][1], ''); sfxFanfare(true); G.nextMilestone++;
+  }
+  const st = stageOf(G.L);
+  if (st !== G.stage) {
+    G.stage = st; FX.stage = st; setAudioStage(st); $('app').dataset.stage = st;
+    const pp = document.querySelector('#play-mascot .pp'); if (pp) pp.classList.toggle('dance', st >= 4);
+  }
+  const d = $('hud-dopa'); d.classList.remove('bump'); void d.offsetWidth; d.classList.add('bump');
+}
+
+function completeWord() {
+  const c = G.cur; G.inputOpen = false;
+  const ms = performance.now() - c.t0; const first = c.miss === 0;
+  if (first) G.firstOk++;
+  const res = { idx: c.idx, miss: c.miss, missPos: [...c.missPos], ms };
+  record(c.idx, first, ms);
+  if (G.phase === 'extra') { G.extraOk++; G.score += 10 + 5 * (G.extraOk - 1); G.extraResults.push(res); }
+  else { G.results.push(res); if (G.pl) placementStep(first); G.q++; }
+  sfxWord(first); mascotAct('happy');
+  $('sheet').classList.add('done'); renderWord(); $('sheet').classList.add('done');
+  const sr = $('sheet').getBoundingClientRect(), cr = FX.cv.getBoundingClientRect();
+  if (G.stage >= 2) FX.burst(sr.left - cr.left + sr.width / 2, sr.top - cr.top + sr.height * 0.6, 10 + G.stage * 5, G.stage >= 3 ? c.w.toUpperCase().replace(/-/g, '') : '');
+  if (G.stage >= 3) FX.firework(c.w);
+  const hint = $('hint'); hint.className = 'hint';
+  hint.innerHTML = first ? '一遍拼对 <b>' + esc(c.w) + '</b>' : '拼好了！紫色是刚才拼错的位置，已放进错词本';
+  if (!first && S.settings.autoSpeak) speak(c.w);
+  renderHud();
+  setTimeout(() => { if (G && G.cur === c && !$('scr-play').hidden) nextWord(); }, first ? 650 : 1500);
+}
+function placementStep(first) {
+  const p = G.pl;
+  if (first) {
+    const n = ORDER[p.pos];
+    for (const a of [n, ...ancestors(n)]) masterNode(a, null);
+    p.last = p.pos; p.step = Math.min(6, Math.ceil(p.step * 1.3)); p.pos = Math.min(15, p.pos + p.step);
+  } else {
+    p.step = Math.max(1, Math.floor(p.step / 2));
+    p.pos = Math.max(0, p.last + Math.max(1, Math.floor((p.pos - p.last) / 2)));
+  }
+}
+function record(idx, first, ms) {
+  const x = WORDS[idx]; const now = Date.now();
+  const r = S.words[x.w] || (S.words[x.w] = { n: 0, ok: 0, box: 0, due: 0, last: 0 });
+  r.n++; r.last = now;
+  if (first) { r.ok++; r.box = Math.min(5, r.box + 1); r.due = now + BOX[r.box] * DAY; } else { r.box = 0; r.due = now; }
+  const bi = S.book.indexOf(x.w); if (bi >= 0) S.book.splice(bi, 1);
+  if (!first) { S.book.push(x.w); if (S.book.length > 300) S.book.shift(); }
+  S.recent.push(x.w); if (S.recent.length > 40) S.recent.shift();
+  const nr = nodeRec(x.node);
+  nr.h.push(first ? 1 : 0); if (nr.h.length > 20) nr.h.shift();
+  nr.r.push(first ? ms / targetMs(x.w) : null); if (nr.r.length > 10) nr.r.shift();
+  if (!nr.mastered && nr.h.length >= 6 && sum(nr.h.slice(-6)) >= 5) masterNode(x.node, G.events);
+  const before = nr.stars; nr.stars = calcStars(nr);
+  if (nr.stars > before && before >= 1) G.events.push({ t: 'star', n: x.node, s: nr.stars });
+  S.stats.solved++; S.stats.maxCombo = Math.max(S.stats.maxCombo, G.maxCombo);
+  today().words++;
+  save();
+}
+
+function finishBasic() {
+  G.inputOpen = false; G.timeMs = performance.now() - G.t0; G.score = 100;
+  if (G.mode === 'placement') S.placed = true;
+  const d = today(); d.plays++; d.best = Math.max(d.best, 100);
+  S.stats.plays++; S.stats.best = Math.max(S.stats.best, 100);
+  for (const n of ORDER) if (isUnlocked(n) && !G.unlockedBefore.has(n)) G.events.push({ t: 'unlock', n });
+  save();
+  musicStop(); FX.stop();
+  showResult('basic');
+}
+function startExtra() {
+  G.phase = 'extra'; G.combo = 0; G.extraEnd = performance.now() + 90000 + 900; G.extraNodes = null;
+  G.unlockedBefore = new Set(ORDER.filter(isUnlocked)); G.events = [];
+  show('play'); $('app').dataset.stage = G.stage; FX.stage = G.stage; setAudioStage(G.stage); FX.start(); musicStart();
+  const pp = document.querySelector('#play-mascot .pp'); if (pp) pp.classList.toggle('dance', G.stage >= 4);
+  flash('加时 90 秒', '每多拼一个词，加分更多'); sfxFanfare(true);
+  setTimeout(() => nextWord(), 900);
+  G.inputOpen = false; G.cur = G.cur || null; renderHud();
+}
+function endExtra() {
+  if (!G || G.phase !== 'extra' || G.ended) return;
+  G.ended = true; G.inputOpen = false; sfxGong();
+  if (canSpeak) speechSynthesis.cancel();
+  S.stats.best = Math.max(S.stats.best, G.score); const d = today(); d.best = Math.max(d.best, G.score);
+  for (const n of ORDER) if (isUnlocked(n) && !G.unlockedBefore.has(n)) G.events.push({ t: 'unlock', n });
+  save();
+  setTimeout(() => { musicStop(); FX.stop(); showResult('final'); }, 900);
+}
+
+// ---------------- hud
+function renderHud() {
+  if (!G) return;
+  const basic = G.phase === 'basic';
+  $('hud-prog').textContent = basic ? `${Math.min(G.q + 1, G.N)} / ${G.N}` : `加时 ${G.extraOk} 词 · ${G.score} 分`;
+  $('hud-bar').style.width = basic ? (G.q / G.N * 100) + '%' : '100%';
+  $('hud-dopa').textContent = fmtDopa(G.L);
+  const cb = $('combo'); cb.classList.toggle('on', G.combo >= 2);
+  $('combo-n').textContent = G.combo;
+  $('combo-mult').hidden = G.combo < 20;
+}
+function hudTick() {
+  if (!G) return;
+  const now = performance.now();
+  const clock = $('hud-clock');
+  if (G.phase === 'basic') {
+    const target = Math.ceil(G.N * 12 / 10) * 10 * 1000;
+    clock.textContent = fmtTime(now - G.t0) + ' / ' + fmtTime(target);
+    clock.classList.remove('warn');
+  } else {
+    const left = G.extraEnd - now;
+    clock.textContent = fmtTime(Math.max(0, left));
+    clock.classList.toggle('warn', left < 15000);
+    if (left <= 0) endExtra();
+  }
+  if (G.inputOpen && G.combo > 0) {
+    const left = G.comboDeadline - now;
+    const frac = clamp(left / G.comboLimit, 0, 1);
+    $('combo-bar').style.width = (frac * 100) + '%';
+    $('cbar').classList.toggle('low', frac < 0.3);
+    if (left <= 0 && G.combo > 1) { if (G.combo >= 5) flash(`${G.combo} 连击`, '超时结束'); G.combo = 0; renderHud(); }
+  }
+}
+function flash(big, small) {
+  const el = document.createElement('div'); el.className = 'flashword';
+  el.innerHTML = esc(big) + (small ? `<small>${esc(small)}</small>` : '');
+  $('scr-play').appendChild(el); setTimeout(() => el.remove(), 1450);
+}
+const ICON_SOUND = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 010 7"/></svg>';
+const ICON_MUTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M17 9l5 6M22 9l-5 6"/></svg>';
+function updateMute() { const b = $('btn-mute'); b.innerHTML = S.settings.muted ? ICON_MUTE : ICON_SOUND; b.setAttribute('aria-label', S.settings.muted ? '取消静音' : '静音'); }
+
+// ================================================================ results
+function wordRow(r) {
+  const x = WORDS[r.idx];
+  const w = [...x.w].map((ch, i) => (r.missPos && r.missPos.includes(i) ? `<mark>${esc(ch)}</mark>` : esc(ch))).join('');
+  return `<div class="witem"><span class="w">${w}</span><span class="m">${esc(x.m)}</span><span class="r ${r.miss ? 'x' : ''}">${r.miss ? '错 ' + r.miss + ' 次' : '一遍对'}</span></div>`;
+}
+function eventsHtml() {
+  const ev = G.events.slice();
+  if (G.mode === 'placement' && G.phase === 'basic') {
+    const m = ORDER.filter(isMastered).length;
+    const txt = m === 16 ? '16 个词阶全部直接掌握，之后的新词从最难的几阶里抽'
+      : m ? `直接掌握 ${m} 个词阶，下一轮从「${frontier().map(nodeName).join('、')}」开始` : '从「高频·短词」开始，一阶一阶往上爬';
+    ev.unshift({ t: 'place', txt });
+  }
+  // Collapse unlocks into one row; placement already summarises them.
+  const unlocks = ev.filter((e) => e.t === 'unlock').map((e) => nodeName(e.n));
+  const rows = ev.filter((e) => e.t !== 'unlock');
+  if (unlocks.length && G.mode !== 'placement') rows.push({ t: 'unlock', names: unlocks });
+  if (!rows.length) return '';
+  return '<div class="events">' + rows.map((e) => {
+    if (e.t === 'place') return `<div class="event"><span class="tag">测试结果</span><span>${esc(e.txt)}</span></div>`;
+    if (e.t === 'master') return `<div class="event"><span class="tag">掌握</span><b>${nodeName(e.n)}</b><span>☆1</span></div>`;
+    if (e.t === 'star') return `<div class="event"><span class="tag">升星</span><b>${nodeName(e.n)}</b><span>${'★'.repeat(e.s)}</span></div>`;
+    return `<div class="event"><span class="tag">解锁</span><b>${e.names.join('、')}</b></div>`;
+  }).join('') + '</div>';
+}
+function showResult(kind) {
+  show('result');
+  const body = $('result-body'), foot = $('result-foot');
+  if (kind === 'basic') {
+    const rate = G.firstOk / G.N;
+    const canExtra = rate >= 0.8 && G.mode !== 'review';
+    body.innerHTML = `
+      <div class="score"><div class="num">100</div><div class="lab">${G.mode === 'placement' ? '实力测试完成' : G.mode === 'review' ? '错词复习完成' : '全部拼完'}</div></div>
+      <div class="metrics">
+        <div><b>${fmtTime(G.timeMs)}</b><span>用时</span></div>
+        <div><b>${Math.round(rate * 100)}%</b><span>一遍拼对</span></div>
+        <div><b>${fmtDopa(G.L)}</b><span>多巴值</span></div>
+        <div><b>${G.maxCombo}</b><span>最高连击</span></div>
+      </div>
+      ${canExtra ? `<div class="extra-cta"><p>一遍拼对 ${Math.round(rate * 100)}%，解锁 90 秒加时：第 k 个词加 10+5k 分，词也更难。</p><button class="btn" id="btn-extra">挑战加时</button></div>` : (G.mode !== 'review' ? `<p class="legend" style="text-align:center">一遍拼对达到 80% 就能挑战加时（这轮 ${G.firstOk}/${G.N}）</p>` : '')}
+      ${eventsHtml()}
+      <div class="section-title">这一轮的词</div>
+      <div class="wlist">${G.results.map(wordRow).join('')}</div>`;
+    foot.innerHTML = `<button class="btn" id="btn-home">回到首页</button><button class="btn primary" id="btn-again">再来一轮</button>`;
+    if (canExtra) $('btn-extra').onclick = () => { audioInit(); startExtra(); };
+  } else {
+    body.innerHTML = `
+      <div class="score"><div class="num">${G.score}</div><div class="lab">加时结束</div></div>
+      <div class="metrics">
+        <div><b>${G.extraOk}</b><span>加时拼完</span></div>
+        <div><b>${G.extraResults.filter((r) => !r.miss).length}</b><span>一遍拼对</span></div>
+        <div><b>${fmtDopa(G.L)}</b><span>多巴值</span></div>
+        <div><b>${G.maxCombo}</b><span>最高连击</span></div>
+      </div>
+      ${eventsHtml()}
+      ${G.extraResults.length ? `<div class="section-title">加时拼过的词</div><div class="wlist">${G.extraResults.map(wordRow).join('')}</div>` : ''}
+      <div class="section-title">基础 10 词</div>
+      <div class="wlist">${G.results.map(wordRow).join('')}</div>`;
+    foot.innerHTML = `<button class="btn" id="btn-home">回到首页</button><button class="btn primary" id="btn-again">再来一轮</button>`;
+  }
+  $('btn-home').onclick = () => { G = null; show('title'); };
+  $('btn-again').onclick = () => { const m = G.mode === 'placement' ? 'adaptive' : G.mode; const n = G.node; G = null; if (m === 'review' && !S.book.length) show('title'); else startGame(m, { node: n }); };
+  $('result-body').parentElement.scrollTop = 0;
+  if (kind === 'final' || G.mode !== 'review') sfxFanfare(kind === 'final');
+}
+
+// ================================================================ tree / book
+function renderTree() {
+  let html = '<div></div>' + LEN_RANGE.map((r, l) => `<div class="ax">${LEN_NAME[l]}<br>${r}</div>`).join('');
+  for (let f = 0; f < 4; f++) {
+    html += `<div class="ax row">${FREQ[f]}</div>`;
+    for (let l = 0; l < 4; l++) {
+      const n = f * 4 + l, st = nodeState(n), r = S.nodes[n];
+      const stars = r && r.mastered ? '<span class="stars">' + '★'.repeat(r.stars) + `<span class="off">${'★'.repeat(3 - r.stars)}</span></span>` : '';
+      const cls = ['node', st, l ? 'has-l' : '', f ? 'has-t' : '', l && isMastered(n - 1) ? 'l-ok' : '', f && isMastered(n - 4) ? 't-ok' : ''].join(' ');
+      html += `<button class="${cls}" data-n="${n}" aria-label="${nodeName(n)} ${STATE_TXT[st]}"><span class="nm">${LEN_NAME[l]}</span><span class="ct">${BY_NODE[n].length} 词</span><span class="st">${STATE_TXT[st]}</span>${stars}</button>`;
+    }
+  }
+  $('tree').innerHTML = html;
+}
+function nodeDialog(n) {
+  const st = nodeState(n), r = S.nodes[n] || { h: [], r: [], stars: 0 };
+  const seen = BY_NODE[n].filter((i) => S.words[WORDS[i].w]).length;
+  const last6 = r.h.slice(-6);
+  let next = '';
+  if (!r.mastered) next = `最近 6 次里 5 次一遍拼对（现在 ${sum(last6)}/${last6.length}）`;
+  else if (r.stars < 2) next = `☆2：最近 20 次至少 18 次一遍拼对（现在 ${sum(r.h.slice(-20))}/${r.h.length}）`;
+  else if (r.stars < 3) next = '☆3：最近 10 次中至少 5 次一遍拼对，且拼写速度的中位数不超过基准';
+  else next = '已经满星';
+  const samples = BY_NODE[n].slice(0, 6).map((i) => `<span>${esc(WORDS[i].w)}</span>`).join('');
+  const lockTxt = st === 'locked' ? `<p>需要先掌握：${prereq(n).filter((p) => !isMastered(p)).map(nodeName).join('、')}</p>` : '';
+  openDialog(`
+    <h3>${nodeName(n)}</h3>
+    <dl class="kv"><dt>范围</dt><dd>${FREQ_DESC[n >> 2]} · ${LEN_RANGE[n & 3]}</dd><dt>词数</dt><dd>${BY_NODE[n].length} 词，拼过 ${seen} 个</dd><dt>状态</dt><dd>${STATE_TXT[st]}${r.stars ? ' ' + '★'.repeat(r.stars) : ''}</dd><dt>下一步</dt><dd>${next}</dd></dl>
+    <div class="samples">${samples}</div>
+    ${lockTxt}
+    <div class="row"><button class="btn ghost" data-close>关闭</button><button class="btn primary" id="btn-node-go" ${st === 'locked' ? 'disabled' : ''}>练这一阶</button></div>`);
+  $('btn-node-go').onclick = () => { closeDialog(); startGame('node', { node: n }); };
+}
+function renderBook() {
+  const list = S.book.slice().reverse().filter((w) => WI.has(w));
+  $('btn-review').disabled = !list.length;
+  $('book-body').innerHTML = list.length
+    ? `<p class="legend">拼错过的词会进来，之后任何一轮里一遍拼对就会移出。复习一次最多 10 个，从最近拼错的开始。共 ${list.length} 个。</p><div class="wlist">${list.map((w) => { const x = WORDS[WI.get(w)]; const r = S.words[w] || {}; return `<div class="witem"><span class="w">${esc(w)}</span><span class="m">${esc(x.m)}</span><span class="r x">拼过 ${r.n || 0} 次</span></div>`; }).join('')}</div>`
+    : '<div class="empty">错词本是空的。<br>拼错的词会自动收进来。</div>';
+}
+
+// ================================================================ dialogs
+function openDialog(html) { $('dialog').innerHTML = html; $('overlay').hidden = false; $('dialog').querySelectorAll('[data-close]').forEach((b) => (b.onclick = closeDialog)); const f = $('dialog').querySelector('button'); if (f) f.focus(); }
+function closeDialog() { $('overlay').hidden = true; $('dialog').innerHTML = ''; }
+$('overlay').addEventListener('click', (e) => { if (e.target === $('overlay')) closeDialog(); });
+function seg(id, label, opts, val) {
+  return `<div class="opt"><span>${label}</span><div class="seg" id="${id}">${opts.map(([v, t]) => `<button data-v="${v}" aria-pressed="${String(v) === String(val)}">${t}</button>`).join('')}</div></div>`;
+}
+function settingsDialog(confirmReset = false) {
+  const s = S.settings;
+  openDialog(`
+    <h3>设置</h3>
+    ${seg('o-count', '每轮单词数', [[6, '6 词'], [10, '10 词'], [14, '14 词']], s.count)}
+    ${seg('o-speak', '出题时自动发音', [[1, '开'], [0, '关']], s.autoSpeak ? 1 : 0)}
+    ${seg('o-music', '背景音乐', [[1, '开'], [0, '关']], s.music ? 1 : 0)}
+    ${seg('o-sfx', '音效', [[1, '开'], [0, '关']], s.sfx ? 1 : 0)}
+    ${seg('o-motion', '动效强度', [['strong', '强'], ['low', '弱'], ['off', '关']], s.motion)}
+    ${confirmReset ? '<p>清空后，掌握的词阶、错词本和所有记录都会删除，无法恢复。</p><div class="row"><button class="btn ghost" id="o-reset-no">保留记录</button><button class="btn danger" id="o-reset-yes">确认清空</button></div>' : '<div class="row"><button class="btn ghost danger" id="o-reset">清空全部记录</button><button class="btn primary" data-close>完成</button></div>'}`);
+  const bind = (id, fn) => $(id).querySelectorAll('button').forEach((b) => (b.onclick = () => { fn(b.dataset.v); save(); applyAudio(); applyMotion(); settingsDialog(confirmReset); renderTitle(); }));
+  bind('o-count', (v) => (s.count = +v));
+  bind('o-speak', (v) => (s.autoSpeak = v === '1'));
+  bind('o-music', (v) => (s.music = v === '1'));
+  bind('o-sfx', (v) => (s.sfx = v === '1'));
+  bind('o-motion', (v) => (s.motion = v));
+  if (confirmReset) {
+    $('o-reset-no').onclick = () => settingsDialog(false);
+    $('o-reset-yes').onclick = () => { const keep = S.settings; try { localStorage.removeItem(KEY); } catch (e) { /* ignore */ } S = load(); S.settings = keep; save(); closeDialog(); renderTitle(); };
+  } else $('o-reset').onclick = () => settingsDialog(true);
+}
+function quitDialog() {
+  if (!G) return;
+  const wasOpen = G.inputOpen; G.inputOpen = false; G.pausedAt = performance.now();
+  openDialog(`<h3>退出这一轮？</h3><p>${G.phase === 'extra' ? '加时会直接结算，已拼完的词照常计分。' : '已经拼完的词会保留记录，这一轮不计分。'}</p><div class="row"><button class="btn ghost" id="q-no">继续拼</button><button class="btn primary" id="q-yes">${G.phase === 'extra' ? '结算' : '退出'}</button></div>`);
+  $('q-no').onclick = () => { const d = performance.now() - G.pausedAt; G.comboDeadline += d; if (G.phase === 'extra') G.extraEnd += d; else G.t0 += d; G.inputOpen = wasOpen; closeDialog(); };
+  $('q-yes').onclick = () => { closeDialog(); if (G.phase === 'extra') { G.extraEnd = 0; endExtra(); } else { save(); G = null; show('title'); } };
+}
+function applyMotion() { $('app').dataset.motion = S.settings.motion; }
+
+// ================================================================ keyboard
+function buildKeyboard() {
+  const rows = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'];
+  const back = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 5H9l-6 7 6 7h12z"/><path d="M12 9l5 6M17 9l-5 6"/></svg>';
+  const spk = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 010 7"/></svg>';
+  $('kb').innerHTML = rows.map((r, i) => `<div class="kb-row">${i === 2 ? `<button class="key wide" data-k="speak" aria-label="重听发音">${spk}</button>` : ''}${[...r].map((c) => `<button class="key" data-k="${c}">${c}</button>`).join('')}${i === 2 ? `<button class="key wide" data-k="back" aria-label="删除">${back}</button>` : ''}</div>`).join('');
+  $('kb').addEventListener('pointerdown', (e) => {
+    const b = e.target.closest('.key'); if (!b) return;
+    e.preventDefault(); press(b.dataset.k);
+  });
+}
+function press(k) {
+  const b = document.querySelector(`.key[data-k="${k}"]`);
+  if (b) { b.classList.add('down'); setTimeout(() => b.classList.remove('down'), 90); }
+  if (k === 'back') onBack();
+  else if (k === 'speak') { if (G && G.cur) speak(G.cur.w); }
+  else onKey(k);
+}
+document.addEventListener('keydown', (e) => {
+  if (!$('overlay').hidden) { if (e.key === 'Escape') { const no = $('q-no'); if (no) no.click(); else closeDialog(); } return; }
+  if ($('scr-play').hidden || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (/^[a-z]$/i.test(e.key)) { e.preventDefault(); press(e.key.toLowerCase()); }
+  else if (e.key === 'Backspace') { e.preventDefault(); press('back'); }
+  else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); press('speak'); }
+  else if (e.key === 'Escape') quitDialog();
+});
+document.addEventListener('visibilitychange', () => {
+  if (!A.ctx) return;
+  if (document.hidden) A.ctx.suspend(); else if (!$('scr-play').hidden) A.ctx.resume();
+});
+
+// ================================================================ wiring
+function boot() {
+  FX.init(); buildKeyboard(); applyMotion();
+  $('title-mascot').innerHTML = MASCOT; $('play-mascot').innerHTML = MASCOT;
+  $('btn-start').onclick = () => startGame(S.placed ? 'adaptive' : 'placement');
+  $('btn-tree').onclick = () => show('tree');
+  $('btn-book').onclick = () => show('book');
+  $('btn-settings').onclick = () => settingsDialog();
+  $('btn-review').onclick = () => startGame('review');
+  document.querySelectorAll('.back').forEach((b) => (b.onclick = () => show('title')));
+  $('tree').addEventListener('click', (e) => { const n = e.target.closest('.node'); if (n) nodeDialog(+n.dataset.n); });
+  $('btn-quit').onclick = quitDialog;
+  $('btn-speak').onclick = () => { if (G && G.cur) speak(G.cur.w); };
+  $('btn-mute').onclick = () => { S.settings.muted = !S.settings.muted; save(); applyAudio(); updateMute(); };
+  addEventListener('resize', () => { if (G && G.cur && !$('scr-play').hidden) renderWord(); });
+  if (!WORDS.length) { $('t-plan').textContent = '词表没有加载成功，请刷新页面。'; $('btn-start').disabled = true; return; }
+  show('title');
+}
+boot();
+})();
+</script>
+</body>
+</html>
